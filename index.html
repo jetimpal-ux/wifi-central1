@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WiFi Rakyat Manado - Sistem Voucher & Firebase</title>
+<style>
+/* CSS tetap sama seperti sebelumnya dengan tambahan gaya tombol unduh */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;color:#1a1a18}
+.app{min-height:100vh;display:flex;flex-direction:column;max-width:800px;margin:0 auto}
+.topbar{background:#fff;border-bottom:0.5px solid rgba(0,0,0,.12);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:#185FA5;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;fill:white}
+.logo-text{font-size:16px;font-weight:500}
+.logo-sub{font-size:11px;color:#666}
+.status-dot{display:flex;align-items:center;gap:6px;font-size:12px;color:#666}
+.dot{width:8px;height:8px;border-radius:50%;background:#639922;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.nav{background:#fff;border-bottom:0.5px solid rgba(0,0,0,.12);display:flex;overflow-x:auto;padding:0 20px}
+.nav-btn{padding:12px 16px;font-size:13px;font-weight:400;color:#666;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
+.nav-btn.active{color:#185FA5;border-bottom-color:#185FA5;font-weight:500}
+.content{flex:1;padding:20px;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:#eeeee9;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.stat-label{font-size:12px;color:#666}
+.stat-value{font-size:22px;font-weight:500}
+.stat-value.green{color:#3B6D11}
+.stat-value.blue{color:#185FA5}
+.stat-value.amber{color:#854F0B}
+.card{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:16px;margin-bottom:14px}
+.card-title{font-size:14px;font-weight:500;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.btn{padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:0.5px solid rgba(0,0,0,.25);background:#fff;color:#1a1a18;transition:.15s}
+.btn:hover{background:#f0f0ec}
+.btn-primary{background:#185FA5;color:white;border-color:#185FA5}
+.btn-success{background:#EAF3DE;color:#3B6D11;border-color:#C1D6A3}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:13px;color:#666;margin-bottom:6px}
+input,select{width:100%;padding:8px 12px;border:0.5px solid rgba(0,0,0,.25);border-radius:8px;font-size:14px;background:#fff;color:#1a1a18}
+.pw-box{background:#F1EFE8;border:0.5px solid #D3D1C7;border-radius:8px;padding:14px;font-family:monospace;font-size:18px;text-align:center;letter-spacing:4px;color:#2C2C2A;margin:10px 0}
+.pw-result{display:none}.pw-result.show{display:block}
+.trans-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid rgba(0,0,0,.1);font-size:13px}
+.trans-debit{color:#A32D2D;font-weight:500}
+.trans-kredit{color:#3B6D11;font-weight:500}
+.paket-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:14px}
+.paket-card{border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:.2s}
+.paket-card:hover{border-color:#185FA5;background:#f0f7ff}
+.paket-card.selected{border-color:#185FA5;background:#E6F1FB;box-shadow:0 0 0 1px #185FA5}
+.paket-name{font-size:11px;color:#666;text-transform:uppercase}
+.paket-price{font-size:18px;font-weight:600;color:#185FA5}
+.empty-state{text-align:center;padding:30px;color:#666;font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M1.5 8.5C5.5 4.5 10.5 2.5 12 2.5s6.5 2 10.5 6l-2 2C17.5 7.5 15 5.5 12 5.5s-5.5 2-8.5 5l-2-2zm4 4C7.5 10.5 9.5 9 12 9s4.5 1.5 6.5 3.5l-2 2C15 13 13.5 12 12 12s-3 1-4.5 2.5l-2-2zm4 4L12 18l2.5-1.5-2.5-2.5-2.5 2.5 2.5 1.5z"/></svg></div>
+    <div>
+      <div class="logo-text">WiFi Rakyat Manado</div>
+      <div class="logo-sub">Cloud Sync & Export Data</div>
+    </div>
+  </div>
+  <div class="status-dot"><div class="dot"></div><span>Modem online</span></div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showPage('dashboard',this)">Dashboard</button>
+  <button class="nav-btn" onclick="showPage('voucher',this)">Buat Voucher</button>
+  <button class="nav-btn" onclick="showPage('keuangan',this)">Keuangan</button>
+</div>
+
+<div class="content">
+
+<div id="page-dashboard" class="page active">
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-label">Voucher (Bln Ini)</div><div class="stat-value blue" id="s-v-count">0</div></div>
+    <div class="stat"><div class="stat-label">Income (Bln Ini)</div><div class="stat-value green" id="s-bulan">Rp0</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">
+        Aktivitas Terakhir
+        <button class="btn btn-success" style="font-size: 11px" onclick="downloadCSV()">Unduh Data CSV</button>
+    </div>
+    <div id="dash-activity"><div class="empty-state">Belum ada aktivitas</div></div>
+  </div>
+</div>
+
+<div id="page-voucher" class="page">
+  <div class="card">
+    <div class="card-title">Pilih Paket Voucher</div>
+    <div class="paket-grid">
+      <div class="paket-card" onclick="selectPaket(10, this)"><div class="paket-name">Paket</div><div class="paket-price">10K</div></div>
+      <div class="paket-card" onclick="selectPaket(20, this)"><div class="paket-name">Paket</div><div class="paket-price">20K</div></div>
+      <div class="paket-card" onclick="selectPaket(50, this)"><div class="paket-name">Paket</div><div class="paket-price">50K</div></div>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Tipe Password</div>
+      <select id="v-tipe">
+        <option value="angka">Hanya Angka (6 Digit)</option>
+        <option value="campur">Huruf & Angka (Acak)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%; padding:12px" onclick="generateVoucher()">Cetak & Simpan Voucher</button>
+    <div class="pw-result" id="v-result">
+      <div class="form-label" style="margin-top:14px; text-align:center">Kode Voucher:</div>
+      <div class="pw-box" id="v-display">--------</div>
+      <button class="btn" style="width:100%" onclick="copyVoucher()">Salin Kode</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Riwayat Voucher Hari Ini</div>
+    <div id="v-history"><div class="empty-state">Belum ada voucher</div></div>
+  </div>
+</div>
+
+<div id="page-keuangan" class="page">
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-label">Total Pemasukan</div><div class="stat-value green" id="k-in">Rp0</div></div>
+    <div class="stat"><div class="stat-label">Total Pengeluaran</div><div class="stat-value amber" id="k-out">Rp0</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Catat Pengeluaran</div>
+    <div style="display:flex; gap:10px">
+      <input type="number" id="ex-jumlah" placeholder="Rp" style="flex:1">
+      <input type="text" id="ex-ket" placeholder="Ket" style="flex:2">
+      <button class="btn btn-primary" onclick="tambahPengeluaran()">Simpan</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">
+        Riwayat Transaksi
+        <button class="btn btn-success" style="font-size: 11px" onclick="downloadCSV()">Export ke Excel</button>
+    </div>
+    <div id="list-transaksi"><div class="empty-state">Belum ada transaksi</div></div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script type="module">
+// --- KONFIGURASI FIREBASE ---
+const firebaseConfig = {
+  apiKey: "AIzaSyCF0QRlH5SAYvAYndektj-PdwWsJDIm5Bo",
+  authDomain: "wificentral1.firebaseapp.com",
+  databaseURL: "https://wificentral1-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "wificentral1",
+  storageBucket: "wificentral1.firebasestorage.app",
+  messagingSenderId: "864377868495",
+  appId: "1:864377868495:web:756f3507d5233a5b42a7ba"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+window.state = {
+  vouchers: [],
+  transaksi: [],
+  selectedNominal: 0,
+  aktivitas: []
+};
+
+// Fungsi Sinkronisasi
+const dbRef = ref(db, 'wifi_data');
+onValue(dbRef, (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    state.vouchers = data.vouchers || [];
+    state.transaksi = data.transaksi || [];
+    state.aktivitas = data.aktivitas || [];
+    renderDashboard();
+    renderVoucherHistory();
+    renderKeuangan();
+  }
+});
+
+function syncToFirebase() {
+  set(ref(db, 'wifi_data'), {
+    vouchers: state.vouchers,
+    transaksi: state.transaksi,
+    aktivitas: state.aktivitas
+  });
+}
+
+// Logika Format & Tool
+window.fmt = (n) => 'Rp' + n.toLocaleString('id-ID');
+window.today = () => new Date().toISOString().slice(0, 10);
+
+window.showPage = (id, btn) => {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  if(id === 'dashboard') renderDashboard();
+  if(id === 'keuangan') renderKeuangan();
+};
+
+window.selectPaket = (val, el) => {
+  state.selectedNominal = val * 1000;
+  document.querySelectorAll('.paket-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+};
+
+window.generateVoucher = () => {
+  if (state.selectedNominal === 0) return alert('Pilih paket!');
+  const tipe = document.getElementById('v-tipe').value;
+  let code = '';
+  if (tipe === 'angka') {
+    for(let i=0; i<6; i++) code += Math.floor(Math.random()*10);
+  } else {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    for(let i=0; i<6; i++) code += chars[Math.floor(Math.random()*chars.length)];
+  }
+  
+  state.vouchers.unshift({ code, nominal: state.selectedNominal, tgl: today(), jam: new Date().toLocaleTimeString('id-ID') });
+  state.transaksi.unshift({ 
+    id: Date.now(), jenis: 'kredit', jumlah: state.selectedNominal, 
+    ket: 'Voucher ' + (state.selectedNominal/1000) + 'K (' + code + ')', tanggal: today() 
+  });
+  state.aktivitas.unshift('Terjual Voucher ' + (state.selectedNominal/1000) + 'K');
+  
+  document.getElementById('v-display').textContent = code;
+  document.getElementById('v-result').classList.add('show');
+  syncToFirebase();
+};
+
+window.copyVoucher = () => {
+  const code = document.getElementById('v-display').textContent;
+  navigator.clipboard.writeText(code);
+  alert('Disalin!');
+};
+
+window.tambahPengeluaran = () => {
+  const jml = parseInt(document.getElementById('ex-jumlah').value);
+  const ket = document.getElementById('ex-ket').value;
+  if (!jml || !ket) return;
+  state.transaksi.unshift({ id: Date.now(), jenis: 'debit', jumlah: jml, ket, tanggal: today() });
+  document.getElementById('ex-jumlah').value = ''; document.getElementById('ex-ket').value = '';
+  syncToFirebase();
+};
+
+// --- FUNGSI UNDUH CSV ---
+window.downloadCSV = () => {
+  const data = state.transaksi;
+  if (data.length === 0) return alert("Belum ada transaksi");
+
+  let csv = "Tanggal,Keterangan,Jenis,Jumlah (Rp)\n";
+  data.forEach(t => {
+    csv += `${t.tanggal},"${t.ket}",${t.jenis === 'kredit' ? 'Pemasukan' : 'Pengeluaran'},${t.jumlah}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Laporan_WiFi_Rakyat_${today()}.csv`;
+  a.click();
+};
+
+// Render Functions (Tetap sama)
+function renderVoucherHistory() {
+  const el = document.getElementById('v-history');
+  el.innerHTML = state.vouchers.slice(0, 5).map(v => `<div class="trans-item"><div><strong>${v.code}</strong><br><small>${v.jam}</small></div><div class="trans-kredit">${fmt(v.nominal)}</div></div>`).join('');
+}
+
+function renderKeuangan() {
+  const masuk = state.transaksi.filter(t => t.jenis === 'kredit').reduce((a, t) => a + t.jumlah, 0);
+  const keluar = state.transaksi.filter(t => t.jenis === 'debit').reduce((a, t) => a + t.jumlah, 0);
+  document.getElementById('k-in').textContent = fmt(masuk);
+  document.getElementById('k-out').textContent = fmt(keluar);
+  document.getElementById('list-transaksi').innerHTML = state.transaksi.map(t => `<div class="trans-item"><div>${t.ket}<br><small>${t.tanggal}</small></div><div class="${t.jenis==='kredit'?'trans-kredit':'trans-debit'}">${t.jenis==='kredit'?'+':'-'}${fmt(t.jumlah)}</div></div>`).join('');
+}
+
+function renderDashboard() {
+  const vBulanIni = state.transaksi.filter(t => t.jenis === 'kredit' && t.tanggal.startsWith(today().slice(0, 7)));
+  document.getElementById('s-v-count').textContent = vBulanIni.length;
+  document.getElementById('s-bulan').textContent = fmt(vBulanIni.reduce((a, t) => a + t.jumlah, 0));
+  document.getElementById('dash-activity').innerHTML = state.aktivitas.slice(0, 5).map(a => `<div class="trans-item"><span>${a}</span> <small>Baru saja</small></div>`).join('');
+}
+</script>
+</body>
+</html>
