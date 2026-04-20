@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WiFi Rakyat Manado - Permanen Data</title>
+<style>
+/* CSS tetap sama agar tampilan konsisten */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;color:#1a1a18}
+.app{min-height:100vh;display:flex;flex-direction:column;max-width:800px;margin:0 auto}
+.topbar{background:#fff;border-bottom:0.5px solid rgba(0,0,0,.12);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:#185FA5;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;fill:white}
+.logo-text{font-size:16px;font-weight:500}
+.logo-sub{font-size:11px;color:#666}
+.status-dot{display:flex;align-items:center;gap:6px;font-size:12px;color:#666}
+.dot{width:8px;height:8px;border-radius:50%;background:#639922;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.nav{background:#fff;border-bottom:0.5px solid rgba(0,0,0,.12);display:flex;overflow-x:auto;padding:0 20px}
+.nav-btn{padding:12px 16px;font-size:13px;font-weight:400;color:#666;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
+.nav-btn.active{color:#185FA5;border-bottom-color:#185FA5;font-weight:500}
+.content{flex:1;padding:20px;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:#eeeee9;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.stat-label{font-size:12px;color:#666}
+.stat-value{font-size:22px;font-weight:500}
+.stat-value.green{color:#3B6D11}
+.stat-value.blue{color:#185FA5}
+.card{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:16px;margin-bottom:14px}
+.card-title{font-size:14px;font-weight:500;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.btn{padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:0.5px solid rgba(0,0,0,.25);background:#fff;color:#1a1a18;transition:.15s}
+.btn-primary{background:#185FA5;color:white;border-color:#185FA5}
+.pw-box{background:#F1EFE8;border:0.5px solid #D3D1C7;border-radius:8px;padding:14px;font-family:monospace;font-size:18px;text-align:center;letter-spacing:4px;color:#2C2C2A;margin:10px 0}
+.pw-result{display:none}.pw-result.show{display:block}
+.trans-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid rgba(0,0,0,.1);font-size:13px}
+.paket-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:14px}
+.paket-card{border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:.2s}
+.paket-card.selected{border-color:#185FA5;background:#E6F1FB}
+.empty-state{text-align:center;padding:30px;color:#666;font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+    <div class="topbar">
+        <div class="logo">
+            <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M1.5 8.5C5.5 4.5 10.5 2.5 12 2.5s6.5 2 10.5 6l-2 2C17.5 7.5 15 5.5 12 5.5s-5.5 2-8.5 5l-2-2zm4 4C7.5 10.5 9.5 9 12 9s4.5 1.5 6.5 3.5l-2 2C15 13 13.5 12 12 12s-3 1-4.5 2.5l-2-2zm4 4L12 18l2.5-1.5-2.5-2.5-2.5 2.5 2.5 1.5z"/></svg></div>
+            <div>
+                <div class="logo-text">WiFi Rakyat Manado</div>
+                <div class="logo-sub">Data Tersimpan Aman</div>
+            </div>
+        </div>
+        <div class="status-dot"><div class="dot"></div><span>Cloud Connected</span></div>
+    </div>
+
+    <div class="nav">
+        <button class="nav-btn active" onclick="showPage('dashboard',this)">Dashboard</button>
+        <button class="nav-btn" onclick="showPage('voucher',this)">Buat Voucher</button>
+        <button class="nav-btn" onclick="showPage('keuangan',this)">Keuangan</button>
+    </div>
+
+    <div class="content">
+        <div id="page-dashboard" class="page active">
+            <div class="stat-grid">
+                <div class="stat"><div class="stat-label">Voucher Terjual</div><div class="stat-value blue" id="s-v-count">0</div></div>
+                <div class="stat"><div class="stat-label">Pendapatan</div><div class="stat-value green" id="s-bulan">Rp0</div></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Aktivitas Terakhir</div>
+                <div id="dash-activity"><div class="empty-state">Belum ada aktivitas</div></div>
+            </div>
+        </div>
+
+        <div id="page-voucher" class="page">
+            <div class="card">
+                <div class="card-title">Pilih Paket</div>
+                <div class="paket-grid">
+                    <div class="paket-card" onclick="selectPaket(10, this)">10K</div>
+                    <div class="paket-card" onclick="selectPaket(20, this)">20K</div>
+                    <div class="paket-card" onclick="selectPaket(50, this)">50K</div>
+                </div>
+                <button class="btn btn-primary" style="width:100%" onclick="generateVoucher()">Cetak Voucher</button>
+                <div class="pw-result" id="v-result">
+                    <div class="pw-box" id="v-display">--------</div>
+                    <button class="btn" style="width:100%" onclick="copyVoucher()">Salin Kode</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-keuangan" class="page">
+            <div class="card">
+                <div class="card-title">
+                    Riwayat Keuangan
+                    <button class="btn" onclick="downloadCSV()">Export CSV</button>
+                </div>
+                <div id="list-transaksi"><div class="empty-state">Data kosong</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    // 1. GANTI INI DENGAN CONFIG FIREBASE ANDA
+    const firebaseConfig = {
+      apiKey: "AIzaSyCF0QRlH5SAYvAYndektj-PdwWsJDIm5Bo",
+  authDomain: "wificentral1.firebaseapp.com",
+  databaseURL: "https://wificentral1-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "wificentral1",
+  storageBucket: "wificentral1.firebasestorage.app",
+  messagingSenderId: "864377868495",
+  appId: "1:864377868495:web:756f3507d5233a5b42a7ba"
+    };
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Variabel Penampung Data
+    window.state = {
+        vouchers: [],
+        transaksi: [],
+        aktivitas: [],
+        selectedNominal: 0
+    };
+
+    // 2. FUNGSI AMBIL DATA (Agar saat buka app, data tidak kosong)
+    const dbRef = ref(db, 'wifi_data');
+    onValue(dbRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            state.vouchers = data.vouchers || [];
+            state.transaksi = data.transaksi || [];
+            state.aktivitas = data.aktivitas || [];
+            updateTampilan();
+        }
+    });
+
+    // 3. FUNGSI SIMPAN DATA (Otomatis ke Cloud)
+    window.saveData = () => {
+        set(ref(db, 'wifi_data'), {
+            vouchers: state.vouchers,
+            transaksi: state.transaksi,
+            aktivitas: state.aktivitas
+        });
+        // Backup ke memori lokal browser sebagai cadangan
+        localStorage.setItem('wifi_backup', JSON.stringify(state));
+    };
+
+    // 4. LOGIKA TOMBOL & UI
+    window.showPage = (id, btn) => {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('page-' + id).classList.add('active');
+        btn.classList.add('active');
+    };
+
+    window.selectPaket = (val, el) => {
+        state.selectedNominal = val * 1000;
+        document.querySelectorAll('.paket-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+    };
+
+    window.generateVoucher = () => {
+        if (!state.selectedNominal) return alert("Pilih paket!");
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const tgl = new Date().toISOString().slice(0, 10);
+
+        state.vouchers.unshift({ code, nominal: state.selectedNominal, tgl });
+        state.transaksi.unshift({ ket: "Voucher "+code, jumlah: state.selectedNominal, tgl, jenis: 'kredit' });
+        state.aktivitas.unshift("Terjual "+state.selectedNominal);
+
+        document.getElementById('v-display').textContent = code;
+        document.getElementById('v-result').classList.add('show');
+        
+        saveData(); // Panggil fungsi simpan
+    };
+
+    function updateTampilan() {
+        document.getElementById('s-v-count').textContent = state.vouchers.length;
+        const total = state.transaksi.reduce((a, b) => a + (b.jenis === 'kredit' ? b.jumlah : -b.jumlah), 0);
+        document.getElementById('s-bulan').textContent = "Rp" + total.toLocaleString('id-ID');
+        
+        const listKeu = document.getElementById('list-transaksi');
+        listKeu.innerHTML = state.transaksi.map(t => `<div class="trans-item"><span>${t.ket}</span><b>Rp${t.jumlah}</b></div>`).join('');
+    }
+
+    window.downloadCSV = () => {
+        let csv = "Tanggal,Keterangan,Jumlah\n";
+        state.transaksi.forEach(t => { csv += `${t.tgl},${t.ket},${t.jumlah}\n`; });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'Laporan_WiFi.csv';
+        a.click();
+    };
+</script>
+</body>
+</html>
