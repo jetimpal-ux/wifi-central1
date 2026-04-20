@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WiFi Central1</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;color:#1a1a18}
+.app{min-height:100vh;display:flex;flex-direction:column;max-width:800px;margin:0 auto}
+.topbar{background:#fff;border-bottom:0.5px solid rgba(0,0,0,.12);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:#185FA5;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;fill:white}
+.logo-text{font-size:16px;font-weight:500}
+.logo-sub{font-size:11px;color:#666}
+.status-dot{display:flex;align-items:center;gap:6px;font-size:12px;color:#666}
+.dot{width:8px;height:8px;border-radius:50%;background:#639922;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.nav{background:#fff;border-bottom:0.5px solid rgba(0,0,0,.12);display:flex;overflow-x:auto;padding:0 20px}
+.nav-btn{padding:12px 16px;font-size:13px;font-weight:400;color:#666;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
+.nav-btn.active{color:#185FA5;border-bottom-color:#185FA5;font-weight:500}
+.content{flex:1;padding:20px;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:#eeeee9;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.stat-label{font-size:12px;color:#666}
+.stat-value{font-size:22px;font-weight:500}
+.stat-value.green{color:#3B6D11}
+.stat-value.blue{color:#185FA5}
+.stat-value.amber{color:#854F0B}
+.card{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:16px;margin-bottom:14px}
+.card-title{font-size:14px;font-weight:500;margin-bottom:14px}
+.pelanggan-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,.1)}
+.pelanggan-item:last-child{border-bottom:none}
+.pelanggan-info{display:flex;align-items:center;gap:10px}
+.avatar{width:34px;height:34px;border-radius:50%;background:#B5D4F4;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#0C447C}
+.pelanggan-name{font-size:14px;font-weight:500}
+.pelanggan-meta{font-size:12px;color:#666}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500}
+.badge-aktif{background:#EAF3DE;color:#3B6D11}
+.badge-mati{background:#FCEBEB;color:#A32D2D}
+.badge-premium{background:#E6F1FB;color:#185FA5}
+.badge-basic{background:#F1EFE8;color:#5F5E5A}
+.btn{padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:0.5px solid rgba(0,0,0,.25);background:#fff;color:#1a1a18;transition:.15s}
+.btn:hover{background:#f0f0ec}
+.btn-primary{background:#185FA5;color:white;border-color:#185FA5}
+.btn-primary:hover{background:#0C447C}
+.btn-danger{background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1}
+.btn-sm{padding:4px 10px;font-size:12px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:13px;color:#666;margin-bottom:6px}
+input,select{width:100%;padding:8px 12px;border:0.5px solid rgba(0,0,0,.25);border-radius:8px;font-size:14px;background:#fff;color:#1a1a18}
+.pw-box{background:#F1EFE8;border:0.5px solid #D3D1C7;border-radius:8px;padding:14px;font-family:monospace;font-size:18px;text-align:center;letter-spacing:4px;color:#2C2C2A;margin:10px 0}
+.pw-result{display:none}
+.pw-result.show{display:block}
+.row{display:flex;gap:10px}
+.row .form-group{flex:1}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);align-items:center;justify-content:center;z-index:100}
+.modal.open{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:20px;width:90%;max-width:380px;border:0.5px solid rgba(0,0,0,.12)}
+.modal-title{font-size:16px;font-weight:500;margin-bottom:14px}
+.trans-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid rgba(0,0,0,.1);font-size:13px}
+.trans-item:last-child{border-bottom:none}
+.trans-debit{color:#A32D2D;font-weight:500}
+.trans-kredit{color:#3B6D11;font-weight:500}
+.quota-bar{height:6px;background:rgba(0,0,0,.1);border-radius:3px;overflow:hidden;margin-top:6px}
+.quota-fill{height:100%;background:#185FA5;border-radius:3px;transition:.3s}
+.info-box{background:#E6F1FB;border:0.5px solid #B5D4F4;border-radius:8px;padding:12px;font-size:13px;color:#0C447C;margin-bottom:14px;line-height:1.6}
+.paket-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.paket-card{border:0.5px solid rgba(0,0,0,.15);border-radius:12px;padding:14px;cursor:pointer;transition:.15s;background:#fff}
+.paket-card:hover{border-color:#378ADD}
+.paket-name{font-size:13px;font-weight:500}
+.paket-price{font-size:20px;font-weight:500;color:#185FA5;margin:4px 0}
+.paket-detail{font-size:11px;color:#666}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.empty-state{text-align:center;padding:30px;color:#666;font-size:13px}
+.tag-expire{font-size:11px;color:#A32D2D}
+.tag-ok{font-size:11px;color:#3B6D11}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M1.5 8.5C5.5 4.5 10.5 2.5 12 2.5s6.5 2 10.5 6l-2 2C17.5 7.5 15 5.5 12 5.5s-5.5 2-8.5 5l-2-2zm4 4C7.5 10.5 9.5 9 12 9s4.5 1.5 6.5 3.5l-2 2C15 13 13.5 12 12 12s-3 1-4.5 2.5l-2-2zm4 4L12 18l2.5-1.5-2.5-2.5-2.5 2.5 2.5 1.5z"/></svg>
+    </div>
+    <div>
+      <div class="logo-text">WiFi Rakyat Manado</div>
+      <div class="logo-sub">Kelola usaha berbagi internet</div>
+    </div>
+  </div>
+  <div class="status-dot"><div class="dot"></div><span>Modem online</span></div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showPage('dashboard',this)">Dashboard</button>
+  <button class="nav-btn" onclick="showPage('pelanggan',this)">Pelanggan</button>
+  <button class="nav-btn" onclick="showPage('password',this)">Buat Password</button>
+  <button class="nav-btn" onclick="showPage('keuangan',this)">Keuangan</button>
+  <button class="nav-btn" onclick="showPage('laporan',this)">Laporan</button>
+</div>
+
+<div class="content">
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-label">Total Pelanggan</div><div class="stat-value blue" id="s-total">0</div></div>
+    <div class="stat"><div class="stat-label">Aktif Bulan Ini</div><div class="stat-value green" id="s-aktif">0</div></div>
+    <div class="stat"><div class="stat-label">Pendapatan Bulan Ini</div><div class="stat-value green" id="s-bulan">Rp0</div></div>
+    <div class="stat"><div class="stat-label">Total Pendapatan</div><div class="stat-value amber" id="s-total-income">Rp0</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Akan Habis / Belum Bayar</div>
+    <div id="dash-expire-list"><div class="empty-state">Belum ada data pelanggan</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Aktivitas Terakhir</div>
+    <div id="dash-activity"><div class="empty-state">Belum ada aktivitas</div></div>
+  </div>
+</div>
+
+<!-- PELANGGAN -->
+<div id="page-pelanggan" class="page">
+  <div class="section-header">
+    <div style="font-size:15px;font-weight:500">Daftar Pelanggan</div>
+    <button class="btn btn-primary" onclick="openModal('modal-tambah')">+ Tambah Pelanggan</button>
+  </div>
+  <div class="card" style="padding:0">
+    <div id="list-pelanggan" style="padding:0 16px">
+      <div class="empty-state" style="padding:30px">Belum ada pelanggan. Tambah pelanggan baru!</div>
+    </div>
+  </div>
+</div>
+
+<!-- PASSWORD -->
+<div id="page-password" class="page">
+  <div class="info-box">
+    Karena tidak memakai Mikrotik, password ini adalah password WiFi modem Anda. Anda bisa buat variasi password khusus per pelanggan dengan cara: ganti password WiFi, catat, lalu bagikan ke pelanggan. Fitur ini membantu Anda mencatat dan mengelola password yang pernah dibuat.
+  </div>
+  <div class="card">
+    <div class="card-title">Generate Password WiFi</div>
+    <div class="form-group">
+      <div class="form-label">Nama Pelanggan</div>
+      <select id="pw-pelanggan"><option value="">-- Pilih Pelanggan --</option></select>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Tipe Password</div>
+      <select id="pw-tipe">
+        <option value="random">Acak (aman)</option>
+        <option value="angka">Angka saja (mudah diingat)</option>
+        <option value="kata">Kata + angka</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="generatePassword()">Generate Password</button>
+    <div class="pw-result" id="pw-result">
+      <div class="form-label" style="margin-top:14px">Password Baru:</div>
+      <div class="pw-box" id="pw-display">--------</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" style="flex:1" onclick="copyPassword()">Salin Password</button>
+        <button class="btn btn-primary" style="flex:1" onclick="simpanPassword()">Simpan & Catat</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Riwayat Password</div>
+    <div id="pw-history"><div class="empty-state">Belum ada password yang disimpan</div></div>
+  </div>
+</div>
+
+<!-- KEUANGAN -->
+<div id="page-keuangan" class="page">
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-label">Pemasukan Bulan Ini</div><div class="stat-value green" id="k-in">Rp0</div></div>
+    <div class="stat"><div class="stat-label">Pengeluaran Bulan Ini</div><div class="stat-value amber" id="k-out">Rp0</div></div>
+    <div class="stat"><div class="stat-label">Keuntungan Bersih</div><div class="stat-value" id="k-net">Rp0</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Catat Transaksi</div>
+    <div class="row">
+      <div class="form-group">
+        <div class="form-label">Jenis</div>
+        <select id="tr-jenis">
+          <option value="kredit">Pemasukan</option>
+          <option value="debit">Pengeluaran</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Jumlah (Rp)</div>
+        <input type="number" id="tr-jumlah" placeholder="50000">
+      </div>
+    </div>
+    <div class="row">
+      <div class="form-group">
+        <div class="form-label">Keterangan</div>
+        <input type="text" id="tr-ket" placeholder="Bayar pelanggan / Beli quota">
+      </div>
+      <div class="form-group">
+        <div class="form-label">Tanggal</div>
+        <input type="date" id="tr-tanggal">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="tambahTransaksi()">Catat Transaksi</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Riwayat Transaksi</div>
+    <div id="list-transaksi"><div class="empty-state">Belum ada transaksi</div></div>
+  </div>
+</div>
+
+<!-- LAPORAN -->
+<div id="page-laporan" class="page">
+  <div class="card">
+    <div class="card-title">Analisa Usaha</div>
+    <div id="laporan-content"><div class="empty-state">Tambahkan data pelanggan dan transaksi untuk melihat laporan</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Paket yang Tersedia</div>
+    <div id="paket-summary"></div>
+  </div>
+</div>
+
+</div>
+
+<!-- MODAL TAMBAH PELANGGAN -->
+<div class="modal" id="modal-tambah">
+  <div class="modal-box">
+    <div class="modal-title">Tambah Pelanggan Baru</div>
+    <div class="form-group"><div class="form-label">Nama Lengkap</div><input type="text" id="new-nama" placeholder="Contoh: Budi Santoso"></div>
+    <div class="form-group"><div class="form-label">No. HP / WA</div><input type="text" id="new-hp" placeholder="0812-xxxx-xxxx"></div>
+    <div class="form-group"><div class="form-label">Paket Langganan</div>
+      <select id="new-paket">
+        <option value="basic">Basic — Rp50.000/bulan</option>
+        <option value="standard">Standard — Rp80.000/bulan</option>
+        <option value="premium">Premium — Rp120.000/bulan</option>
+      </select>
+    </div>
+    <div class="form-group"><div class="form-label">Mulai Berlangganan</div><input type="date" id="new-mulai"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" style="flex:1" onclick="closeModal('modal-tambah')">Batal</button>
+      <button class="btn btn-primary" style="flex:1" onclick="tambahPelanggan()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BAYAR -->
+<div class="modal" id="modal-bayar">
+  <div class="modal-box">
+    <div class="modal-title" id="bayar-title">Catat Pembayaran</div>
+    <div class="form-group"><div class="form-label">Jumlah Bayar</div><input type="number" id="bayar-jumlah" placeholder="50000"></div>
+    <div class="form-group"><div class="form-label">Keterangan</div><input type="text" id="bayar-ket" placeholder="Bayar bulan Juni"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" style="flex:1" onclick="closeModal('modal-bayar')">Batal</button>
+      <button class="btn btn-primary" style="flex:1" onclick="prosessBayar()">Catat Pembayaran</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const PAKET={
+  basic:{nama:'Basic',harga:50000,label:'Rp50.000/bln'},
+  standard:{nama:'Standard',harga:80000,label:'Rp80.000/bln'},
+  premium:{nama:'Premium',harga:120000,label:'Rp120.000/bln'}
+};
+let state={pelanggan:[],transaksi:[],passwords:[],aktivitas:[],bayarTarget:null};
+function fmt(n){return'Rp'+n.toLocaleString('id-ID')}
+function today(){return new Date().toISOString().slice(0,10)}
+function bulanIni(){return new Date().toISOString().slice(0,7)}
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='dashboard')renderDashboard();
+  if(id==='pelanggan')renderPelanggan();
+  if(id==='password')renderPassword();
+  if(id==='keuangan')renderKeuangan();
+  if(id==='laporan')renderLaporan();
+}
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal').forEach(m=>{m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')})});
+function addActivity(msg){state.aktivitas.unshift({msg,time:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})});if(state.aktivitas.length>10)state.aktivitas.pop();}
+function tambahPelanggan(){
+  const nama=document.getElementById('new-nama').value.trim();
+  const hp=document.getElementById('new-hp').value.trim();
+  const paket=document.getElementById('new-paket').value;
+  const mulai=document.getElementById('new-mulai').value||today();
+  if(!nama){alert('Nama tidak boleh kosong');return;}
+  const expire=new Date(mulai);expire.setMonth(expire.getMonth()+1);
+  state.pelanggan.push({id:Date.now(),nama,hp,paket,mulai,expire:expire.toISOString().slice(0,10),aktif:true,initials:nama.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()});
+  addActivity('Pelanggan baru: '+nama);
+  closeModal('modal-tambah');
+  document.getElementById('new-nama').value='';document.getElementById('new-hp').value='';
+  renderPelanggan();renderDashboard();updatePwSelect();
+}
+function renderPelanggan(){
+  const el=document.getElementById('list-pelanggan');
+  if(!state.pelanggan.length){el.innerHTML='<div class="empty-state" style="padding:30px">Belum ada pelanggan. Tambah pelanggan baru!</div>';return;}
+  el.innerHTML=state.pelanggan.map(p=>{
+    const diff=Math.ceil((new Date(p.expire)-new Date())/(1000*60*60*24));
+    const expTag=diff<0?'<span class="tag-expire">Expired '+(-diff)+' hari lalu</span>':diff<=5?'<span class="tag-expire">Habis '+diff+' hari lagi</span>':'<span class="tag-ok">Aktif s/d '+p.expire+'</span>';
+    return`<div class="pelanggan-item"><div class="pelanggan-info"><div class="avatar">${p.initials}</div><div><div class="pelanggan-name">${p.nama}</div><div class="pelanggan-meta">${p.hp||'No HP belum diisi'} &nbsp;·&nbsp; ${PAKET[p.paket].label}</div><div>${expTag}</div></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><span class="badge ${p.paket==='premium'?'badge-premium':'badge-basic'}">${PAKET[p.paket].nama}</span><button class="btn btn-sm btn-primary" onclick="openBayar(${p.id})">Bayar</button><button class="btn btn-sm btn-danger" onclick="hapusPelanggan(${p.id})">Hapus</button></div></div>`;}).join('');
+}
+function openBayar(id){
+  state.bayarTarget=id;
+  const p=state.pelanggan.find(x=>x.id===id);
+  document.getElementById('bayar-title').textContent='Bayar: '+p.nama;
+  document.getElementById('bayar-jumlah').value=PAKET[p.paket].harga;
+  document.getElementById('bayar-ket').value='Bayar langganan '+PAKET[p.paket].nama;
+  openModal('modal-bayar');
+}
+function prosessBayar(){
+  const p=state.pelanggan.find(x=>x.id===state.bayarTarget);if(!p)return;
+  const jml=parseInt(document.getElementById('bayar-jumlah').value)||0;
+  const ket=document.getElementById('bayar-ket').value||'Pembayaran pelanggan';
+  const exp=new Date(p.expire);exp.setMonth(exp.getMonth()+1);p.expire=exp.toISOString().slice(0,10);p.aktif=true;
+  state.transaksi.unshift({id:Date.now(),jenis:'kredit',jumlah:jml,ket:ket+' ('+p.nama+')',tanggal:today()});
+  addActivity('Bayar '+fmt(jml)+' dari '+p.nama);closeModal('modal-bayar');
+  renderPelanggan();renderDashboard();renderKeuangan();
+}
+function hapusPelanggan(id){if(!confirm('Hapus pelanggan ini?'))return;state.pelanggan=state.pelanggan.filter(p=>p.id!==id);renderPelanggan();renderDashboard();updatePwSelect();}
+function renderDashboard(){
+  const thisMonth=bulanIni();
+  const aktif=state.pelanggan.filter(p=>new Date(p.expire)>=new Date()).length;
+  const incomeMonth=state.transaksi.filter(t=>t.jenis==='kredit'&&t.tanggal.slice(0,7)===thisMonth).reduce((a,t)=>a+t.jumlah,0);
+  const incomeTotal=state.transaksi.filter(t=>t.jenis==='kredit').reduce((a,t)=>a+t.jumlah,0);
+  document.getElementById('s-total').textContent=state.pelanggan.length;
+  document.getElementById('s-aktif').textContent=aktif;
+  document.getElementById('s-bulan').textContent=fmt(incomeMonth);
+  document.getElementById('s-total-income').textContent=fmt(incomeTotal);
+  const soon=state.pelanggan.filter(p=>Math.ceil((new Date(p.expire)-new Date())/(1000*60*60*24))<=7);
+  document.getElementById('dash-expire-list').innerHTML=!soon.length?'<div class="empty-state">Semua pelanggan masih aktif</div>':soon.map(p=>{const diff=Math.ceil((new Date(p.expire)-new Date())/(1000*60*60*24));return`<div class="pelanggan-item"><div class="pelanggan-info"><div class="avatar">${p.initials}</div><div><div class="pelanggan-name">${p.nama}</div><div class="pelanggan-meta">${PAKET[p.paket].label}</div></div></div><span class="${diff<0?'tag-expire':'badge badge-mati'}">${diff<0?'Expired '+(-diff)+'h lalu':'Habis '+diff+'h lagi'}</span></div>`}).join('');
+  document.getElementById('dash-activity').innerHTML=!state.aktivitas.length?'<div class="empty-state">Belum ada aktivitas</div>':state.aktivitas.map(a=>`<div class="trans-item"><span>${a.msg}</span><span style="color:#666;font-size:11px">${a.time}</span></div>`).join('');
+}
+function generatePassword(){
+  const tipe=document.getElementById('pw-tipe').value;let pw='';
+  if(tipe==='random'){const c='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';for(let i=0;i<10;i++)pw+=c[Math.floor(Math.random()*c.length)];}
+  else if(tipe==='angka'){for(let i=0;i<8;i++)pw+=Math.floor(Math.random()*10);}
+  else{const k=['Manado','Bunaken','Minahasa','Wanea','Tikala','Sario','Wenang'];pw=k[Math.floor(Math.random()*k.length)]+Math.floor(1000+Math.random()*9000);}
+  document.getElementById('pw-display').textContent=pw;document.getElementById('pw-result').classList.add('show');
+}
+function copyPassword(){const pw=document.getElementById('pw-display').textContent;navigator.clipboard.writeText(pw).catch(()=>{});alert('Password "'+pw+'" berhasil disalin!');}
+function simpanPassword(){
+  const pw=document.getElementById('pw-display').textContent;
+  const pid=document.getElementById('pw-pelanggan').value;
+  const pname=pid?state.pelanggan.find(p=>p.id==pid)?.nama||'Umum':'Umum';
+  if(pw==='--------'){alert('Generate password dulu!');return;}
+  state.passwords.unshift({pw,pelanggan:pname,tanggal:today()});addActivity('Password baru disimpan untuk '+pname);renderPassword();alert('Password disimpan!');
+}
+function updatePwSelect(){
+  const sel=document.getElementById('pw-pelanggan');
+  sel.innerHTML='<option value="">-- Pilih Pelanggan --</option>'+state.pelanggan.map(p=>`<option value="${p.id}">${p.nama}</option>`).join('');
+}
+function renderPassword(){
+  updatePwSelect();
+  const el=document.getElementById('pw-history');
+  if(!state.passwords.length){el.innerHTML='<div class="empty-state">Belum ada password tersimpan</div>';return;}
+  el.innerHTML=state.passwords.map(p=>`<div class="trans-item"><div><div style="font-family:monospace;font-size:15px;font-weight:500">${p.pw}</div><div style="font-size:11px;color:#666">${p.pelanggan} · ${p.tanggal}</div></div><button class="btn btn-sm" onclick="navigator.clipboard.writeText('${p.pw}').catch(()={}); alert('Disalin!')">Salin</button></div>`).join('');
+}
+function tambahTransaksi(){
+  const jenis=document.getElementById('tr-jenis').value;
+  const jumlah=parseInt(document.getElementById('tr-jumlah').value)||0;
+  const ket=document.getElementById('tr-ket').value.trim();
+  const tanggal=document.getElementById('tr-tanggal').value||today();
+  if(!jumlah){alert('Jumlah tidak boleh kosong');return;}
+  state.transaksi.unshift({id:Date.now(),jenis,jumlah,ket:ket||'Transaksi',tanggal});
+  addActivity((jenis==='kredit'?'Pemasukan':'Pengeluaran')+' '+fmt(jumlah));
+  document.getElementById('tr-jumlah').value='';document.getElementById('tr-ket').value='';
+  renderKeuangan();renderDashboard();
+}
+function renderKeuangan(){
+  const thisMonth=bulanIni();
+  const masuk=state.transaksi.filter(t=>t.jenis==='kredit'&&t.tanggal.slice(0,7)===thisMonth).reduce((a,t)=>a+t.jumlah,0);
+  const keluar=state.transaksi.filter(t=>t.jenis==='debit'&&t.tanggal.slice(0,7)===thisMonth).reduce((a,t)=>a+t.jumlah,0);
+  const net=masuk-keluar;
+  document.getElementById('k-in').textContent=fmt(masuk);
+  document.getElementById('k-out').textContent=fmt(keluar);
+  const netEl=document.getElementById('k-net');netEl.textContent=fmt(Math.abs(net));netEl.className='stat-value '+(net>=0?'green':'amber');
+  const el=document.getElementById('list-transaksi');
+  if(!state.transaksi.length){el.innerHTML='<div class="empty-state">Belum ada transaksi</div>';return;}
+  el.innerHTML=state.transaksi.slice(0,20).map(t=>`<div class="trans-item"><div><div style="font-size:13px">${t.ket}</div><div style="font-size:11px;color:#666">${t.tanggal}</div></div><span class="${t.jenis==='kredit'?'trans-kredit':'trans-debit'}">${t.jenis==='kredit'?'+':'-'}${fmt(t.jumlah)}</span></div>`).join('');
+}
+function renderLaporan(){
+  const el=document.getElementById('laporan-content');
+  if(!state.pelanggan.length&&!state.transaksi.length){el.innerHTML='<div class="empty-state">Tambahkan data pelanggan dan transaksi untuk melihat laporan</div>';}
+  else{
+    const totalIncome=state.transaksi.filter(t=>t.jenis==='kredit').reduce((a,t)=>a+t.jumlah,0);
+    const totalOut=state.transaksi.filter(t=>t.jenis==='debit').reduce((a,t)=>a+t.jumlah,0);
+    const net=totalIncome-totalOut;
+    const pc={basic:0,standard:0,premium:0};
+    state.pelanggan.forEach(p=>pc[p.paket]++);
+    el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px"><div class="stat"><div class="stat-label">Total Pemasukan</div><div class="stat-value green" style="font-size:16px">${fmt(totalIncome)}</div></div><div class="stat"><div class="stat-label">Total Pengeluaran</div><div class="stat-value amber" style="font-size:16px">${fmt(totalOut)}</div></div><div class="stat"><div class="stat-label">Keuntungan Bersih</div><div class="stat-value ${net>=0?'green':'amber'}" style="font-size:16px">${fmt(Math.abs(net))}</div></div><div class="stat"><div class="stat-label">Total Pelanggan</div><div class="stat-value blue" style="font-size:16px">${state.pelanggan.length}</div></div></div><div style="font-size:13px;font-weight:500;margin-bottom:8px">Sebaran Paket</div>${['basic','standard','premium'].map(p=>{const pct=state.pelanggan.length?Math.round(pc[p]/state.pelanggan.length*100):0;return`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>${PAKET[p].nama}</span><span>${pc[p]} pelanggan (${pct}%)</span></div><div class="quota-bar"><div class="quota-fill" style="width:${pct}%;background:${p==='premium'?'#185FA5':p==='standard'?'#639922':'#888780'}"></div></div></div>`}).join('')}`;
+  }
+  document.getElementById('paket-summary').innerHTML='<div class="paket-grid">'+Object.entries(PAKET).map(([k,v])=>`<div class="paket-card"><div class="paket-name">${v.nama}</div><div class="paket-price">Rp${v.harga.toLocaleString('id-ID')}</div><div class="paket-detail">per bulan</div></div>`).join('')+'</div>';
+}
+document.getElementById('tr-tanggal').value=today();
+document.getElementById('new-mulai').value=today();
+renderDashboard();renderLaporan();
+</script>
+</body>
+</html>
