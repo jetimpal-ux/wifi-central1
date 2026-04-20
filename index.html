@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Rakyat Manado - Management System</title>
+    <style>
+        :root {
+            --primary: #185FA5;
+            --success: #3B6D11;
+            --danger: #A32D2D;
+            --bg: #f5f5f3;
+            --card-bg: #ffffff;
+            --border: rgba(0,0,0,0.12);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: #1a1a18; line-height: 1.6; }
+        
+        .app { max-width: 600px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; background: #fff; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+
+        /* Header */
+        .topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        .logo-text { font-size: 18px; font-weight: 700; color: var(--primary); }
+        .status-dot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #666; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #639922; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+
+        /* Navigation */
+        .nav { display: flex; border-bottom: 1px solid var(--border); background: #fff; }
+        .nav-btn { flex: 1; padding: 15px; border: none; background: none; font-size: 14px; cursor: pointer; color: #666; transition: 0.3s; border-bottom: 3px solid transparent; }
+        .nav-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+        /* Content Area */
+        .content { padding: 20px; flex: 1; }
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* Cards & Stats */
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 15px; }
+        .card-title { font-size: 15px; font-weight: 600; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .stat-box { background: #f9f9f7; padding: 15px; border-radius: 10px; border: 1px solid var(--border); }
+        .stat-label { font-size: 12px; color: #666; display: block; }
+        .stat-val { font-size: 20px; font-weight: 700; }
+
+        /* Voucher Logic */
+        .paket-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+        .paket-card { border: 1.5px solid var(--border); border-radius: 10px; padding: 15px 5px; text-align: center; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .paket-card.selected { border-color: var(--primary); background: #eef6ff; color: var(--primary); }
+        
+        .v-display-box { background: #2c2c2a; color: #fff; padding: 20px; border-radius: 10px; text-align: center; margin: 15px 0; display: none; }
+        .v-code { font-family: monospace; font-size: 28px; letter-spacing: 5px; display: block; margin-bottom: 10px; }
+
+        /* Buttons */
+        .btn { padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500; font-size: 14px; transition: 0.2s; }
+        .btn-main { background: var(--primary); color: #fff; width: 100%; }
+        .btn-outline { background: #fff; border: 1px solid var(--border); }
+        .btn-del { color: var(--danger); background: #fff1f1; padding: 5px 10px; font-size: 12px; }
+
+        /* List Items */
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .list-item:last-child { border-bottom: none; }
+        .text-green { color: var(--success); }
+        .text-red { color: var(--danger); }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <div class="topbar">
+        <div class="logo-text">WiFi Rakyat</div>
+        <div class="status-dot"><div class="dot"></div> <span id="cloud-status">Cloud Syncing...</span></div>
+    </div>
+
+    <nav class="nav">
+        <button class="nav-btn active" onclick="openPage('dash', this)">Beranda</button>
+        <button class="nav-btn" onclick="openPage('vouch', this)">Voucher</button>
+        <button class="nav-btn" onclick="openPage('finance', this)">Keuangan</button>
+    </nav>
+
+    <div class="content">
+        <div id="page-dash" class="page active">
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <span class="stat-label">Voucher Terjual</span>
+                    <span class="stat-val" id="count-v">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Saldo Kas</span>
+                    <span class="stat-val text-green" id="total-money">Rp0</span>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">Aktivitas Terakhir</div>
+                <div id="recent-logs"></div>
+            </div>
+        </div>
+
+        <div id="page-vouch" class="page">
+            <div class="card">
+                <div class="card-title">Pilih Paket Voucher</div>
+                <div class="paket-grid">
+                    <div class="paket-card" onclick="setPrice(10000, this)">10K</div>
+                    <div class="paket-card" onclick="setPrice(20000, this)">20K</div>
+                    <div class="paket-card" onclick="setPrice(50000, this)">50K</div>
+                </div>
+                <button class="btn btn-main" onclick="generateVoucher()">BUAT VOUCHER</button>
+                
+                <div id="v-result" class="v-display-box">
+                    <span class="v-code" id="v-code-out">------</span>
+                    <button class="btn btn-outline" onclick="copyCode()">Salin Kode</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">Riwayat Cetak Hari Ini</div>
+                <div id="v-list"></div>
+            </div>
+        </div>
+
+        <div id="page-finance" class="page">
+            <div class="card">
+                <div class="card-title">Laporan & Ekspor</div>
+                <button class="btn btn-outline" style="width:100%" onclick="exportCSV()">Unduh Laporan Excel (CSV)</button>
+            </div>
+            <div class="card">
+                <div class="card-title">Catatan Transaksi</div>
+                <div id="t-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    // --- KONFIGURASI FIREBASE (GANTI DENGAN MILIK ANDA) ---
+    const firebaseConfig = {
+  apiKey: "AIzaSyCF0QRlH5SAYvAYndektj-PdwWsJDIm5Bo",
+  authDomain: "wificentral1.firebaseapp.com",
+  databaseURL: "https://wificentral1-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "wificentral1",
+  storageBucket: "wificentral1.firebasestorage.app",
+  messagingSenderId: "864377868495",
+    };
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Global State
+    window.state = {
+        vouchers: [],
+        transaksi: [],
+        selectedPrice: 0
+    };
+
+    // Load Data dari Firebase
+    const dbRef = ref(db, 'wifi_system');
+    onValue(dbRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            state.vouchers = data.vouchers || [];
+            state.transaksi = data.transaksi || [];
+            renderAll();
+            document.getElementById('cloud-status').textContent = "Cloud Connected";
+        }
+    });
+
+    // Fungsi Simpan ke Firebase
+    window.syncCloud = () => {
+        set(ref(db, 'wifi_system'), {
+            vouchers: state.vouchers,
+            transaksi: state.transaksi
+        });
+    };
+
+    // Navigation Logic
+    window.openPage = (id, btn) => {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('page-' + id).classList.add('active');
+        btn.classList.add('active');
+    };
+
+    // Voucher Logic
+    window.setPrice = (val, el) => {
+        state.selectedPrice = val;
+        document.querySelectorAll('.paket-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+    };
+
+    window.generateVoucher = () => {
+        if (!state.selectedPrice) return alert("Pilih harga paket!");
+        
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('id-ID');
+        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+        const newV = { code, price: state.selectedPrice, date: dateStr, time: timeStr };
+        state.vouchers.unshift(newV);
+        
+        state.transaksi.unshift({
+            id: Date.now(),
+            title: `Voucher ${state.selectedPrice/1000}K (${code})`,
+            amount: state.selectedPrice,
+            date: dateStr,
+            type: 'in'
+        });
+
+        document.getElementById('v-code-out').textContent = code;
+        document.getElementById('v-result').style.display = 'block';
+        
+        syncCloud();
+        renderAll();
+    };
+
+    // Hapus Data
+    window.deleteTrans = (index) => {
+        if (confirm("Hapus transaksi ini?")) {
+            const item = state.transaksi[index];
+            // Jika itu voucher, hapus juga di list voucher
+            if (item.title.includes("(")) {
+                const code = item.title.split('(')[1].replace(')', '');
+                state.vouchers = state.vouchers.filter(v => v.code !== code);
+            }
+            state.transaksi.splice(index, 1);
+            syncCloud();
+            renderAll();
+        }
+    };
+
+    // Rendering
+    function renderAll() {
+        // Dashboard Stats
+        document.getElementById('count-v').textContent = state.vouchers.length;
+        const total = state.transaksi.reduce((a, b) => a + (b.type === 'in' ? b.amount : -b.amount), 0);
+        document.getElementById('total-money').textContent = "Rp" + total.toLocaleString('id-ID');
+
+        // Render List Voucher
+        const vList = document.getElementById('v-list');
+        vList.innerHTML = state.vouchers.slice(0, 5).map(v => `
+            <div class="list-item">
+                <span><b>${v.code}</b><br><small>${v.time}</small></span>
+                <span class="text-green">Rp${v.price.toLocaleString('id-ID')}</span>
+            </div>
